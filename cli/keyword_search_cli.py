@@ -23,21 +23,32 @@ def main() -> None:
 
     match args.command:
         case "search":
-            # print the search query here
+            print(f"Loading...")
+            invertedindex = InvertedIndex()
+            try:
+                index_dict, docmap_dict = invertedindex.load()
+                print("Index loaded successfully.")
+            except FileNotFoundError:
+                print("Error: index not found. Run `build` first.")
+                return
+            except EOFError:
+                print("Error: index files are empty/corrupted. Re-run `build`.")
+                return      
             print(f"Searching for: {args.query}")
-            data = read_json(MOVIE_DATA)
-            result_list = key_word_search(data,args.query)
-            for i,result in enumerate(result_list,1):
-                print(f"{i}. {result['title']}")
+            result_list = words_matching_index(args.query,index_dict,docmap_dict)
+            # data = read_json(MOVIE_DATA)
+            # result_list = key_word_search(data,args.query)
+            for i, result in enumerate(result_list, 1):
+                print(f"{i}. {result['title']} (id={result['id']})")
+                
         case "build":
             print(f"Building...")
             data = read_json(MOVIE_DATA)
-            invertedindex = InvertedIndex(data)
-            invertedindex.build()
+            invertedindex = InvertedIndex()
+            invertedindex.build(data)
             invertedindex.save()
-            
-            docs = invertedindex.get_documents("merida")
-            print(f"First document for token 'merida' = {docs[0]}")
+            print("Inverted index built and cached successfully.")
+                        
         case _:
             parser.print_help()
 
@@ -46,18 +57,25 @@ def read_json(file_path:Path) -> list:
         movies = json.load(f)
         movie_list = movies['movies']
         return movie_list
-    
+
+def stemming(filtered_words:list) -> list:
+    stemmer = PorterStemmer()
+    stemmed_words = []
+    for word in filtered_words:
+        stemmed_words.append(stemmer.stem(word))
+    return stemmed_words
+
 def key_word_search(items:list,query:str,) -> list:
         query_token = tokenize_text(preprocessing(query))
         clean_token = remove_stopwords(STOP_WORDS,query_token)
-        result = words_matching(clean_token,items)
+        stemmed_token = stemming(clean_token)
+        result = words_matching(stemmed_token,items)
         return result
 
 def remove_stopwords(file_path:Path,tokens:list) -> list:
     with open(file_path) as f:
-        stopwords = [line for line in f if line.strip()]
-        # get high-value character and use stem() function to reduce the word to its root form
-        kept = [stemmer.stem(w) for w in tokens if w not in stopwords]
+        stopwords = {line.strip().lower() for line in f if line.strip()}
+        kept = [w for w in tokens if w.lower() not in stopwords]
         return kept
  
 def words_matching(query_token:list,items:list):
@@ -71,6 +89,33 @@ def words_matching(query_token:list,items:list):
                 if q in t:
                     result.append(item)  
     return result
+
+def words_matching_index(query: str, index_dict: dict, docmap_dict: dict):
+    results = []
+    seen = set()
+
+    query_tokens = tokenize_text(preprocessing(query))
+    query_tokens = [stemmer.stem(t) for t in query_tokens]
+
+    for token in query_tokens:
+        doc_ids = sorted(index_dict.get(token, set()))
+        for doc_id in doc_ids:
+            if doc_id in seen:
+                continue
+            seen.add(doc_id)
+
+            doc = docmap_dict.get(doc_id)
+            if doc is None:
+                continue
+
+            results.append(doc)
+
+            if len(results) >= 5:
+                return results
+
+    return results
+
+        
                       
 if __name__ == "__main__":
     main()

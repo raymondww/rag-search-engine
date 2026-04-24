@@ -14,6 +14,4 @@ def preprocessing(text:str) -> str:
 
 def tokenize_text(text:str) -> list:
     # tokenization
-    split_text = text.split(' ')
-    split_text = list(filter(lambda x: len(x)!=0, split_text))
-    return split_text
+    return [t for t in text.split() if t]

@@ -2,89 +2,57 @@ from utils import tokenize_text, preprocessing
 from pathlib import Path
 import os 
 import pickle
+from collections import defaultdict
+from nltk.stem import PorterStemmer
 
-ROOT = Path(__file__).resolve().parent.parent 
+stemmer = PorterStemmer()
 
-class InvertedIndex():
-    def __init__(self, movies: list[dict]):
-        """
-        Initialize the InvertedIndex with a list of movie documents.
-
-        Parameters
-        ----------
-        movies : list[dict]
-            A list of movie objects (each movie is a dictionary), for example:
-            {"id": 4651, "title": "Brave", "description": "..."}.
-
-        Attributes
-        ----------
-        self.movies
-            Stores the raw list of movie documents that will be indexed.
-
-        self.index : dict[str, set[int]]
-            The inverted index data structure.
-
-            - Keys are tokens/words (strings), e.g. "merida", "princess"
-            - Values are sets of document IDs (integers) for documents containing that token
-
-            Example:
-                {
-                    "merida": {4651},
-                    "princess": {123, 4651, 9002},
-                    "dragon": {77, 120}
-                }
-
-            This lets us quickly answer:
-            "Which documents contain the word X?"
-
-        self.docmap : dict[int, dict]
-            A mapping from document ID to the full movie document.
-
-            - Keys are document IDs (ints), e.g. 4651
-            - Values are the full movie dictionaries
-
-            Example:
-                {
-                    4651: {"id": 4651, "title": "Brave", "description": "..."},
-                    77:   {"id": 77, "title": "How to Train Your Dragon", "description": "..."}
-                }
-
-            This is useful because the inverted index returns only IDs; docmap lets us
-            retrieve the full movie data for those IDs after a search.
-        """
-        
-        self.movies = movies
-        self.index: dict[str, set[int]] = {}
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
+class InvertedIndex:
+    def __init__(self) -> None:
+        self.index = defaultdict(set)
         self.docmap: dict[int, dict] = {}
-    
-    def __add_document(self,doc_id,text:str) -> None:
-        '''Add each token to the index with the document id'''
-        text_tokens = tokenize_text(preprocessing(text))
-        for text in text_tokens:
-            if text not in self.index:
-                self.index[text] = set()
-            self.index[text].add(doc_id)
-            
+        self.index_path = os.path.join(CACHE_DIR, "index.pkl")
+        self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
+
+    def build(self,movies:list) -> None:
+        for m in movies:
+            doc_id = m["id"]
+            doc_description = f"{m['title']} {m['description']}"
+            self.docmap[doc_id] = m
+            self.__add_document(doc_id, doc_description)
+
+    def save(self) -> None:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(self.index_path, "wb") as f:
+            pickle.dump(self.index, f)
+            print(f"Index saved to {self.index_path}")
+        with open(self.docmap_path, "wb") as f:
+            pickle.dump(self.docmap, f)
+            print(f"Docmap saved to {self.docmap_path}")
+
+    def __add_document(self, doc_id: int, text: str) -> None:
+        tokens = tokenize_text(preprocessing(text))
+        stemmed = [stemmer.stem(t) for t in tokens]
+        for token in set(stemmed):
+            self.index[token].add(doc_id)
+
     def get_documents(self, term: str) -> list[int]:
-        '''Get the document ids for a given term'''
-        term = term.lower().strip()
+        term = stemmer.stem(preprocessing(term).strip())
         doc_ids = self.index.get(term, set())
         return sorted(doc_ids)
+   
+    def load(self):
+        if not os.path.exists(self.index_path) or not os.path.exists(self.docmap_path):
+            raise FileNotFoundError("Index not found. Run the build command first.")
 
-    def build(self) -> None:
-        for m in self.movies:
-            doc_id = int(m["id"])
-            self.docmap[doc_id] = m  
+        with open(self.index_path, "rb") as f:
+            self.index = pickle.load(f)
 
-            text = f"{m.get('title', '')} {m.get('description', '')}"
-            self.__add_document(doc_id, text)
-            
-    def save(self) -> None:
-        cache_path = ROOT.joinpath('cache')
-        cache_path.mkdir(parents=True, exist_ok=True)
-        index_path = cache_path.joinpath('index.pkl')
-        docmap_path = cache_path.joinpath('docmap.pkl')
-        with index_path.open('wb') as f:
-            pickle.dump(self.index, f)
-        with docmap_path.open('wb') as f:
-            pickle.dump(self.docmap, f)
+        with open(self.docmap_path, "rb") as f:
+            self.docmap = pickle.load(f)
+
+        return self.index, self.docmap
+
+        
