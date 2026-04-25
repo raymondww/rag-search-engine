@@ -2,7 +2,7 @@ from utils import tokenize_text, preprocessing
 from pathlib import Path
 import os 
 import pickle
-from collections import defaultdict
+from collections import defaultdict,Counter
 from nltk.stem import PorterStemmer
 
 stemmer = PorterStemmer()
@@ -13,8 +13,10 @@ class InvertedIndex:
     def __init__(self) -> None:
         self.index = defaultdict(set)
         self.docmap: dict[int, dict] = {}
+        self.term_freq = defaultdict(Counter)
         self.index_path = os.path.join(CACHE_DIR, "index.pkl")
         self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
+        self.term_freq_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
 
     def build(self,movies:list) -> None:
         for m in movies:
@@ -31,11 +33,18 @@ class InvertedIndex:
         with open(self.docmap_path, "wb") as f:
             pickle.dump(self.docmap, f)
             print(f"Docmap saved to {self.docmap_path}")
+        with open(self.term_freq_path, "wb") as f:
+            pickle.dump(self.term_freq, f)
+            print(f"Term Freq saved to {self.term_freq_path}")
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokens = tokenize_text(preprocessing(text))
         stemmed = [stemmer.stem(t) for t in tokens]
-        for token in set(stemmed):
+
+        counts = Counter(stemmed)
+        self.term_freq[doc_id] = counts
+
+        for token in counts.keys():
             self.index[token].add(doc_id)
 
     def get_documents(self, term: str) -> list[int]:
@@ -52,7 +61,15 @@ class InvertedIndex:
 
         with open(self.docmap_path, "rb") as f:
             self.docmap = pickle.load(f)
+            
+        with open(self.term_freq_path, "rb") as f:
+                self.term_freq = pickle.load(f)
 
-        return self.index, self.docmap
+        return self.index, self.docmap, self.term_freq
 
-        
+    def get_tf(self, doc_id: int, term: str) -> int:
+        tokens = tokenize_text(preprocessing(term))
+        if len(tokens) != 1:
+            raise ValueError(f"Expected exactly 1 token, got {len(tokens)}: {tokens}")
+        token = stemmer.stem(tokens[0])
+        return self.term_freq.get(doc_id, Counter()).get(token, 0)

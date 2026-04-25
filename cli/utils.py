@@ -1,6 +1,7 @@
 import pathlib
 import os
 import sys
+import json
 import string
 
 def preprocessing(text:str) -> str:
@@ -15,3 +16,4 @@ def preprocessing(text:str) -> str:
 def tokenize_text(text:str) -> list:
     # tokenization
     return [t for t in text.split() if t]
+
