@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import math
 from nltk.stem import PorterStemmer
 from utils import tokenize_text, preprocessing
 from tf_idf import InvertedIndex
@@ -21,6 +22,11 @@ def main() -> None:
     tf_parser = subparsers.add_parser("tf", help="Build and cache the inverted index")
     tf_parser.add_argument("id", type=int, help="Doc ID")
     tf_parser.add_argument("term", type=str, help="Term to calculate TF for")
+    idf_parser = subparsers.add_parser("idf", help="calculate IDF for a term")
+    idf_parser.add_argument("term", type=str, help="Term to calculate IDF for")
+    tf_idf_parser = subparsers.add_parser("tfidf", help="calculate IDF for a term")
+    tf_idf_parser.add_argument("id", type=int, help="Doc ID")
+    tf_idf_parser.add_argument("term", type=str, help="Term to calculate TF-IDF for")
 
     args = parser.parse_args()
 
@@ -65,7 +71,38 @@ def main() -> None:
 
             tf_value = invertedindex.get_tf(args.id, args.term)
             print(tf_value)
-                        
+            
+        case "idf":
+            term = args.term
+            invertedindex = InvertedIndex()
+            try:
+                index_dict, docmap_dict, _ = invertedindex.load() 
+            except FileNotFoundError:
+                print("Error: index not found. Run `build` first.")
+                return
+            except EOFError:
+                print("Error: index files are empty/corrupted. Re-run `build`.")
+                return
+            result_list = words_matching_index(term,index_dict,docmap_dict)
+            idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
+            print(f"Inverse document frequency of '{args.term}': {idf_value:.2f}") 
+        
+        case "tfidf":
+            invertedindex = InvertedIndex()
+            try:                
+                index_dict, docmap_dict, _ = invertedindex.load()
+            except FileNotFoundError:
+                print("Error: index not found. Run `build` first.")
+                return
+            except EOFError:
+                print("Error: index files are empty/corrupted. Re-run `build`.")
+                return
+            tf_value = invertedindex.get_tf(args.id, args.term)
+            result_list = words_matching_index(args.term,index_dict,docmap_dict)
+            idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
+            tf_idf_value = tf_value * idf_value
+            print(f"TF-IDF score of '{args.term}' in document '{args.id}': {tf_idf_value:.2f}")
+            
         case _:
             parser.print_help()
 
@@ -127,8 +164,8 @@ def words_matching_index(query: str, index_dict: dict, docmap_dict: dict):
 
             results.append(doc)
 
-            if len(results) >= 5:
-                return results
+            # if len(results) >= 5:
+            #     return results
 
     return results
 
