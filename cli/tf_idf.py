@@ -1,11 +1,9 @@
-from utils import tokenize_text, preprocessing
+from utils import tokenize_text, preprocessing, stemming
 from pathlib import Path
 import os 
+import math
 import pickle
 from collections import defaultdict,Counter
-from nltk.stem import PorterStemmer
-
-stemmer = PorterStemmer()
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
@@ -39,7 +37,8 @@ class InvertedIndex:
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokens = tokenize_text(preprocessing(text))
-        stemmed = [stemmer.stem(t) for t in tokens]
+        # stemmed = [stemmer.stem(t) for t in tokens]
+        stemmed = stemming(tokens)
 
         counts = Counter(stemmed)
         self.term_freq[doc_id] = counts
@@ -48,8 +47,10 @@ class InvertedIndex:
             self.index[token].add(doc_id)
 
     def get_documents(self, term: str) -> list[int]:
-        term = stemmer.stem(preprocessing(term).strip())
-        doc_ids = self.index.get(term, set())
+        tokens = tokenize_text(preprocessing(term))
+        token = stemming(tokens)[0]
+        # term = stemmer.stem(preprocessing(term).strip())
+        doc_ids = self.index.get(token, set())
         return sorted(doc_ids)
    
     def load(self):
@@ -71,5 +72,15 @@ class InvertedIndex:
         tokens = tokenize_text(preprocessing(term))
         if len(tokens) != 1:
             raise ValueError(f"Expected exactly 1 token, got {len(tokens)}: {tokens}")
-        token = stemmer.stem(tokens[0])
+        token = stemming(tokens)[0]
         return self.term_freq.get(doc_id, Counter()).get(token, 0)
+    
+    def get_bm25_idf(self, term:str) -> float:
+        # IDF = log((N - df + 0.5) / (df + 0.5) + 1)
+        tokens = tokenize_text(preprocessing(term))
+        if len(tokens) != 1:
+            raise ValueError(f"Expected exactly 1 token, got {len(tokens)}: {tokens}")
+        token = stemming(tokens)[0]
+        df = len(self.index.get(token, set()))
+        N = len(self.docmap)
+        return math.log((N - df + 0.5) / (df + 0.5) + 1)

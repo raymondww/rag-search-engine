@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import string
+from nltk.stem import PorterStemmer
 
 def preprocessing(text:str) -> str:
     # make the text lower case
@@ -15,5 +16,11 @@ def preprocessing(text:str) -> str:
 
 def tokenize_text(text:str) -> list:
     # tokenization
-    return [t for t in text.split() if t]
+    return text.split()
 
+def stemming(text:list) -> list:
+    stemmer = PorterStemmer()
+    stemmed_words = []
+    for word in text:
+        stemmed_words.append(stemmer.stem(word))
+    return stemmed_words

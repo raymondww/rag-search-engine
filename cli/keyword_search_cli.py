@@ -2,11 +2,9 @@ import argparse
 import json
 import os
 import math
-from nltk.stem import PorterStemmer
-from utils import tokenize_text, preprocessing
+from utils import tokenize_text, preprocessing, stemming
 from tf_idf import InvertedIndex
 
-stemmer = PorterStemmer()
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 MOVIE_DATA = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOP_WORDS = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
@@ -27,6 +25,8 @@ def main() -> None:
     tf_idf_parser = subparsers.add_parser("tfidf", help="calculate IDF for a term")
     tf_idf_parser.add_argument("id", type=int, help="Doc ID")
     tf_idf_parser.add_argument("term", type=str, help="Term to calculate TF-IDF for")
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="calculate BM25IDF for a term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to calculate BM25IDF for")
 
     args = parser.parse_args()
 
@@ -83,8 +83,14 @@ def main() -> None:
             except EOFError:
                 print("Error: index files are empty/corrupted. Re-run `build`.")
                 return
-            result_list = words_matching_index(term,index_dict,docmap_dict)
-            idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
+            token = tokenize_text(preprocessing(term))
+            token = stemming(token)[0]
+            df = len(index_dict.get(token, set()))
+            N = len(docmap_dict)
+            idf_value = math.log((N + 1) / (df + 1))
+            
+            # result_list = words_matching_index(term,index_dict,docmap_dict)
+            # idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
             print(f"Inverse document frequency of '{args.term}': {idf_value:.2f}") 
         
         case "tfidf":
@@ -102,22 +108,32 @@ def main() -> None:
             idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
             tf_idf_value = tf_value * idf_value
             print(f"TF-IDF score of '{args.term}' in document '{args.id}': {tf_idf_value:.2f}")
-            
+        
+        case "bm25idf":
+            try:
+                bm25idf = bm25_idf_command(args.term)
+            except FileNotFoundError:
+                print("Error: index not found. Run `build` first.")
+                return
+            except EOFError:
+                print("Error: index files are empty/corrupted. Re-run `build`.")
+                return
+
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
+                
         case _:
             parser.print_help()
+
+def bm25_idf_command(term:str) -> float:
+    invertedindex = InvertedIndex()
+    invertedindex.load()
+    return invertedindex.get_bm25_idf(term)
 
 def read_json(file_path: str | os.PathLike[str]) -> list:
     with open(file_path, "r", encoding="utf-8") as f:
         movies = json.load(f)
         movie_list = movies['movies']
         return movie_list
-
-def stemming(filtered_words:list) -> list:
-    stemmer = PorterStemmer()
-    stemmed_words = []
-    for word in filtered_words:
-        stemmed_words.append(stemmer.stem(word))
-    return stemmed_words
 
 def key_word_search(items:list,query:str,) -> list:
         query_token = tokenize_text(preprocessing(query))
@@ -148,10 +164,8 @@ def words_matching_index(query: str, index_dict: dict, docmap_dict: dict):
     results = []
     seen = set()
 
-    query_tokens = tokenize_text(preprocessing(query))
-    query_tokens = [stemmer.stem(t) for t in query_tokens]
-
-    for token in query_tokens:
+    tokens = stemming(tokenize_text(preprocessing(query)))
+    for token in tokens:
         doc_ids = sorted(index_dict.get(token, set()))
         for doc_id in doc_ids:
             if doc_id in seen:
@@ -163,9 +177,6 @@ def words_matching_index(query: str, index_dict: dict, docmap_dict: dict):
                 continue
 
             results.append(doc)
-
-            # if len(results) >= 5:
-            #     return results
 
     return results
 
