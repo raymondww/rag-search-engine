@@ -8,6 +8,7 @@ from collections import defaultdict,Counter
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 class InvertedIndex:
+    BM25_K1 = 1.5
     def __init__(self) -> None:
         self.index = defaultdict(set)
         self.docmap: dict[int, dict] = {}
@@ -84,3 +85,8 @@ class InvertedIndex:
         df = len(self.index.get(token, set()))
         N = len(self.docmap)
         return math.log((N - df + 0.5) / (df + 0.5) + 1)
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
+

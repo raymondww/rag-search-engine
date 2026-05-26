@@ -27,7 +27,12 @@ def main() -> None:
     tf_idf_parser.add_argument("term", type=str, help="Term to calculate TF-IDF for")
     bm25_idf_parser = subparsers.add_parser("bm25idf", help="calculate BM25IDF for a term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to calculate BM25IDF for")
-
+    bm25_tf_parser = subparsers.add_parser(
+    "bm25tf", help="Get BM25 TF score for a given document ID and term"
+    )
+    bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
+    bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=InvertedIndex.BM25_K1, help="Tunable BM25 K1 parameter")
     args = parser.parse_args()
 
     match args.command:
@@ -120,7 +125,12 @@ def main() -> None:
                 return
 
             print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
-                
+        
+        case "bm25tf":
+            bm25tf = bm25_tf_command(args.doc_id, args.term)
+            print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
+
+
         case _:
             parser.print_help()
 
@@ -128,6 +138,11 @@ def bm25_idf_command(term:str) -> float:
     invertedindex = InvertedIndex()
     invertedindex.load()
     return invertedindex.get_bm25_idf(term)
+
+def bm25_tf_command(doc_id:int, term:str) -> float:
+    invertedindex = InvertedIndex()
+    invertedindex.load()
+    return invertedindex.get_bm25_tf(doc_id, term)
 
 def read_json(file_path: str | os.PathLike[str]) -> list:
     with open(file_path, "r", encoding="utf-8") as f:
@@ -143,6 +158,7 @@ def key_word_search(items:list,query:str,) -> list:
         return result
 
 def remove_stopwords(file_path: str | os.PathLike[str],tokens:list) -> list:
+    '''Remove stopwords, lowercase, and strip whitespace from tokens'''
     with open(file_path) as f:
         stopwords = {line.strip().lower() for line in f if line.strip()}
         kept = [w for w in tokens if w.lower() not in stopwords]
@@ -179,8 +195,6 @@ def words_matching_index(query: str, index_dict: dict, docmap_dict: dict):
             results.append(doc)
 
     return results
-
-        
                       
 if __name__ == "__main__":
     main()
