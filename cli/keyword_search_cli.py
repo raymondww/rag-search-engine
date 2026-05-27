@@ -2,12 +2,15 @@ import argparse
 import json
 import os
 import math
-from utils import tokenize_text, preprocessing, stemming
-from tf_idf import InvertedIndex
+from utils import get_stopwords, get_movies
+from keyword_search import (
+    InvertedIndex, build_index_command, 
+    search_command, tokenize_single_term,
+    bm25_idf_command, bm25_tf_command)
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-MOVIE_DATA = os.path.join(PROJECT_ROOT, "data", "movies.json")
-STOP_WORDS = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
+
+stopwords_list = get_stopwords()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -16,17 +19,25 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
     search_parser.add_argument("query", type=str, help="Search query")
     
+    search_vanilla_parser = subparsers.add_parser("search-vanilla", help="Search movies using keyword matching without BM25")
+    search_vanilla_parser.add_argument("query", type=str, help="Search query")
+    
     build_parser = subparsers.add_parser("build", help="Build and cache the inverted index")
+    # TF
     tf_parser = subparsers.add_parser("tf", help="Build and cache the inverted index")
     tf_parser.add_argument("id", type=int, help="Doc ID")
     tf_parser.add_argument("term", type=str, help="Term to calculate TF for")
+    # IDF
     idf_parser = subparsers.add_parser("idf", help="calculate IDF for a term")
     idf_parser.add_argument("term", type=str, help="Term to calculate IDF for")
+    # TF-IDF
     tf_idf_parser = subparsers.add_parser("tfidf", help="calculate IDF for a term")
     tf_idf_parser.add_argument("id", type=int, help="Doc ID")
     tf_idf_parser.add_argument("term", type=str, help="Term to calculate TF-IDF for")
+    # BM25 IDF
     bm25_idf_parser = subparsers.add_parser("bm25idf", help="calculate BM25IDF for a term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to calculate BM25IDF for")
+    # BM25 TF
     bm25_tf_parser = subparsers.add_parser(
     "bm25tf", help="Get BM25 TF score for a given document ID and term"
     )
@@ -36,11 +47,18 @@ def main() -> None:
     args = parser.parse_args()
 
     match args.command:
+        
+        case "search-vanilla":
+            data = get_movies()
+            result_list = search_command(args.query,data,match_type='exact')
+            for i, result in enumerate(result_list, 1):
+                print(f"{i}. {result['title']} {result['id']}")
+                
         case "search":
             print(f"Loading Index...")
             invertedindex = InvertedIndex()
             try:
-                index_dict, docmap_dict, _ = invertedindex.load()
+                index_dict, docmap_dict,_ = invertedindex.load()
                 print("Index loaded successfully.")
             except FileNotFoundError:
                 print("Error: index not found. Run `build` first.")
@@ -49,20 +67,15 @@ def main() -> None:
                 print("Error: index files are empty/corrupted. Re-run `build`.")
                 return      
             print(f"Searching for: {args.query}")
-            result_list = words_matching_index(args.query,index_dict,docmap_dict)
-            # data = read_json(MOVIE_DATA)
-            # result_list = key_word_search(data,args.query)
+            result_list = search_command(args.query,[],match_type='index',index_dict=index_dict,docmap_dict=docmap_dict)
             for i, result in enumerate(result_list, 1):
                 print(f"{i}. {result['title']} (id={result['id']})")
         
         case "build":
-            print(f"Building...")
-            data = read_json(MOVIE_DATA)
-            invertedindex = InvertedIndex()
-            invertedindex.build(data)
-            invertedindex.save()
+            print("Building inverted index...")
+            build_index_command()
             print("Inverted index built and cached successfully.")
-        
+
         case "tf":
             invertedindex = InvertedIndex()
             try:
@@ -73,12 +86,11 @@ def main() -> None:
             except EOFError:
                 print("Error: index files are empty/corrupted. Re-run `build`.")
                 return
-
-            tf_value = invertedindex.get_tf(args.id, args.term)
+            term = tokenize_single_term(args.term)
+            tf_value = invertedindex.get_tf(args.id, term)
             print(tf_value)
             
         case "idf":
-            term = args.term
             invertedindex = InvertedIndex()
             try:
                 index_dict, docmap_dict, _ = invertedindex.load() 
@@ -88,14 +100,12 @@ def main() -> None:
             except EOFError:
                 print("Error: index files are empty/corrupted. Re-run `build`.")
                 return
-            token = tokenize_text(preprocessing(term))
-            token = stemming(token)[0]
-            df = len(index_dict.get(token, set()))
-            N = len(docmap_dict)
-            idf_value = math.log((N + 1) / (df + 1))
-            
-            # result_list = words_matching_index(term,index_dict,docmap_dict)
-            # idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
+            term = tokenize_single_term(args.term)
+            # document frequency of the term
+            term_match_doc_count = len(index_dict.get(term, set()))
+            # total number of documents in the corpus
+            total_doc_count = len(docmap_dict)
+            idf_value = math.log((total_doc_count) / (term_match_doc_count + 1))
             print(f"Inverse document frequency of '{args.term}': {idf_value:.2f}") 
         
         case "tfidf":
@@ -108,9 +118,14 @@ def main() -> None:
             except EOFError:
                 print("Error: index files are empty/corrupted. Re-run `build`.")
                 return
-            tf_value = invertedindex.get_tf(args.id, args.term)
-            result_list = words_matching_index(args.term,index_dict,docmap_dict)
-            idf_value = math.log((len(docmap_dict) + 1) / (len(result_list) + 1))
+            term = tokenize_single_term(args.term)
+            # term frequency of the term in the specified document
+            tf_value = invertedindex.get_tf(args.id, term)
+            # document frequency of the term
+            term_match_doc_count = len(index_dict.get(term, set()))
+            # total number of documents in the corpus
+            total_doc_count = len(docmap_dict)
+            idf_value = math.log((total_doc_count) / (term_match_doc_count + 1))
             tf_idf_value = tf_value * idf_value
             print(f"TF-IDF score of '{args.term}' in document '{args.id}': {tf_idf_value:.2f}")
         
@@ -130,71 +145,9 @@ def main() -> None:
             bm25tf = bm25_tf_command(args.doc_id, args.term)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
 
-
         case _:
             parser.print_help()
-
-def bm25_idf_command(term:str) -> float:
-    invertedindex = InvertedIndex()
-    invertedindex.load()
-    return invertedindex.get_bm25_idf(term)
-
-def bm25_tf_command(doc_id:int, term:str) -> float:
-    invertedindex = InvertedIndex()
-    invertedindex.load()
-    return invertedindex.get_bm25_tf(doc_id, term)
-
-def read_json(file_path: str | os.PathLike[str]) -> list:
-    with open(file_path, "r", encoding="utf-8") as f:
-        movies = json.load(f)
-        movie_list = movies['movies']
-        return movie_list
-
-def key_word_search(items:list,query:str,) -> list:
-        query_token = tokenize_text(preprocessing(query))
-        clean_token = remove_stopwords(STOP_WORDS,query_token)
-        stemmed_token = stemming(clean_token)
-        result = words_matching(stemmed_token,items)
-        return result
-
-def remove_stopwords(file_path: str | os.PathLike[str],tokens:list) -> list:
-    '''Remove stopwords, lowercase, and strip whitespace from tokens'''
-    with open(file_path) as f:
-        stopwords = {line.strip().lower() for line in f if line.strip()}
-        kept = [w for w in tokens if w.lower() not in stopwords]
-        return kept
- 
-def words_matching(query_token:list,items:list):
-    result = []
-    for item in items:
-        title = item.get('title','')
-        text_token = tokenize_text(preprocessing(title))
-        clean_token = remove_stopwords(STOP_WORDS,text_token)
-        for q in query_token:
-            for t in clean_token:
-                if q in t:
-                    result.append(item)  
-    return result
-
-def words_matching_index(query: str, index_dict: dict, docmap_dict: dict):
-    results = []
-    seen = set()
-
-    tokens = stemming(tokenize_text(preprocessing(query)))
-    for token in tokens:
-        doc_ids = sorted(index_dict.get(token, set()))
-        for doc_id in doc_ids:
-            if doc_id in seen:
-                continue
-            seen.add(doc_id)
-
-            doc = docmap_dict.get(doc_id)
-            if doc is None:
-                continue
-
-            results.append(doc)
-
-    return results
+            
                       
 if __name__ == "__main__":
     main()
