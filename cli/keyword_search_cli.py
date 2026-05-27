@@ -8,8 +8,6 @@ from keyword_search import (
     search_command, tokenize_single_term,
     bm25_idf_command, bm25_tf_command)
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-
 stopwords_list = get_stopwords()
 
 def main() -> None:
@@ -44,6 +42,8 @@ def main() -> None:
     bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=InvertedIndex.BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25_tf_parser.add_argument("b", type=float, nargs='?', default=InvertedIndex.BM25_B, help="Tunable BM25 b parameter")
+
     args = parser.parse_args()
 
     match args.command:
@@ -58,7 +58,7 @@ def main() -> None:
             print(f"Loading Index...")
             invertedindex = InvertedIndex()
             try:
-                index_dict, docmap_dict,_ = invertedindex.load()
+                index_dict,docmap_dict,_,_ = invertedindex.load()
                 print("Index loaded successfully.")
             except FileNotFoundError:
                 print("Error: index not found. Run `build` first.")
@@ -93,7 +93,7 @@ def main() -> None:
         case "idf":
             invertedindex = InvertedIndex()
             try:
-                index_dict, docmap_dict, _ = invertedindex.load() 
+                index_dict,docmap_dict,_,_ = invertedindex.load() 
             except FileNotFoundError:
                 print("Error: index not found. Run `build` first.")
                 return
@@ -111,7 +111,7 @@ def main() -> None:
         case "tfidf":
             invertedindex = InvertedIndex()
             try:                
-                index_dict, docmap_dict, _ = invertedindex.load()
+                index_dict,docmap_dict,_,_ = invertedindex.load()
             except FileNotFoundError:
                 print("Error: index not found. Run `build` first.")
                 return

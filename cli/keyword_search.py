@@ -12,6 +12,7 @@ stopwords_list = get_stopwords()
 
 class InvertedIndex:
     BM25_K1 = 1.5
+    BM25_B = 0.75
     def __init__(self) -> None:
         # {'fruits': {'1', '2'}})
         self.index = defaultdict(set)
@@ -21,6 +22,8 @@ class InvertedIndex:
         self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
         self.term_freq = defaultdict(Counter)
         self.term_freq_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
+        self.doc_lengths = defaultdict(int)
+        self.doc_lengths_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
         
     def build(self) -> None:
         """
@@ -62,6 +65,9 @@ class InvertedIndex:
         with open(self.term_freq_path, "wb") as f:
             pickle.dump(self.term_freq, f)
             print(f"Term Freq saved to {self.term_freq_path}")
+        with open(self.doc_lengths_path, "wb") as f:
+            pickle.dump(self.doc_lengths, f)
+            print(f"Doc Lengths saved to {self.doc_lengths_path}")
             
     def __add_document(self, doc_id: int, text: str) -> None:
         """
@@ -97,6 +103,7 @@ class InvertedIndex:
             self.index[token].add(doc_id)
         counts = Counter(tokenize_query)
         self.term_freq[doc_id].update(counts)
+        self.doc_lengths[doc_id] = len(tokenize_query)
 
     def get_documents(self, term: str) -> list[int]:
         """Get all document IDs containing a term.
@@ -132,8 +139,10 @@ class InvertedIndex:
 
         with open(self.term_freq_path, "rb") as f:
                 self.term_freq = pickle.load(f)
+        with open(self.doc_lengths_path, "rb") as f:
+                self.doc_lengths = pickle.load(f)
 
-        return self.index, self.docmap, self.term_freq
+        return self.index, self.docmap, self.term_freq, self.doc_lengths
     
     def get_tf(self, doc_id: int, term: str) -> int:
         term = tokenize_single_term(term)
@@ -146,9 +155,18 @@ class InvertedIndex:
         total_doc_count = len(self.docmap)
         return math.log((total_doc_count - term_match_doc_count + 0.5) / (term_match_doc_count + 0.5) + 1)
     
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B ) -> float:
+        # Length normalization factor
+        doc_length = self.doc_lengths.get(doc_id, 0)
+        avg_doc_length = self.__get_avg_doc_length()
+        length_norm = 1 - b + b * (doc_length / avg_doc_length)
         tf = self.get_tf(doc_id, term)
-        return (tf * (k1 + 1)) / (tf + k1)
+        return (tf * (k1 + 1)) / (tf + k1 * length_norm)
+    
+    def __get_avg_doc_length(self) -> float:
+        total_length = sum(self.doc_lengths.values())
+        num_docs = len(self.doc_lengths)
+        return total_length / num_docs if num_docs > 0 else 0.0
     
 def tokenize_single_term(term: str) -> str:
     """Normalize a single search term.
@@ -169,7 +187,6 @@ def tokenize_single_term(term: str) -> str:
         If term normalizes to more or fewer than one token.
     """
     tokens = normalize_tokens(term, stopwords=stopwords_list, stem=True)
-    print(f"Tokenized '{term}' to {tokens}")
     if len(tokens) != 1:
         raise ValueError(f"term must be a single token, got {len(tokens)}: {tokens}")
     return tokens[0]
