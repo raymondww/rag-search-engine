@@ -6,7 +6,8 @@ from utils import get_stopwords, get_movies
 from keyword_search import (
     InvertedIndex, build_index_command, 
     search_command, tokenize_single_term,
-    bm25_idf_command, bm25_tf_command)
+    bm25_idf_command, bm25_tf_command,
+    bm25_search_command)
 
 stopwords_list = get_stopwords()
 
@@ -44,6 +45,10 @@ def main() -> None:
     bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=InvertedIndex.BM25_K1, help="Tunable BM25 K1 parameter")
     bm25_tf_parser.add_argument("b", type=float, nargs='?', default=InvertedIndex.BM25_B, help="Tunable BM25 b parameter")
 
+    # BM25 TF-IDF
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+    
     args = parser.parse_args()
 
     match args.command:
@@ -55,19 +60,16 @@ def main() -> None:
                 print(f"{i}. {result['title']} {result['id']}")
                 
         case "search":
-            print(f"Loading Index...")
-            invertedindex = InvertedIndex()
             try:
-                index_dict,docmap_dict,_,_ = invertedindex.load()
-                print("Index loaded successfully.")
+                result_list = search_command(args.query,[],match_type='index')
             except FileNotFoundError:
                 print("Error: index not found. Run `build` first.")
                 return
             except EOFError:
                 print("Error: index files are empty/corrupted. Re-run `build`.")
                 return      
+            
             print(f"Searching for: {args.query}")
-            result_list = search_command(args.query,[],match_type='index',index_dict=index_dict,docmap_dict=docmap_dict)
             for i, result in enumerate(result_list, 1):
                 print(f"{i}. {result['title']} (id={result['id']})")
         
@@ -144,6 +146,21 @@ def main() -> None:
         case "bm25tf":
             bm25tf = bm25_tf_command(args.doc_id, args.term)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
+        
+        case "bm25search":
+            try:
+                bm25 = bm25_search_command(args.query)
+            except FileNotFoundError:
+                print("Error: index not found. Run `build` first.")
+                return
+            except EOFError:
+                print("Error: index files are empty/corrupted. Re-run `build`.")
+                return
+            
+            for i, result in enumerate(bm25, 1):
+                print(f"raw score: {result['score']:.10f}")
+
+                print(f"{i}. (id={result['id']}) {result['title']} - Score: {result['score']:.2f}")
 
         case _:
             parser.print_help()

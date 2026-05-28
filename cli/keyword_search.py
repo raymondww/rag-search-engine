@@ -24,6 +24,7 @@ class InvertedIndex:
         self.term_freq_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
         self.doc_lengths = defaultdict(int)
         self.doc_lengths_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
+        self._avg_doc_length: float | None = None
         
     def build(self) -> None:
         """
@@ -99,10 +100,10 @@ class InvertedIndex:
         consistent matching against this index.
         """
         tokenize_query = normalize_tokens(text, stopwords=stopwords_list, stem=True)
-        for token in tokenize_query:
+        for token in set(tokenize_query):
             self.index[token].add(doc_id)
-        counts = Counter(tokenize_query)
-        self.term_freq[doc_id].update(counts)
+        # counts = Counter(tokenize_query)
+        self.term_freq[doc_id].update(tokenize_query)
         self.doc_lengths[doc_id] = len(tokenize_query)
 
     def get_documents(self, term: str) -> list[int]:
@@ -139,6 +140,7 @@ class InvertedIndex:
 
         with open(self.term_freq_path, "rb") as f:
                 self.term_freq = pickle.load(f)
+                
         with open(self.doc_lengths_path, "rb") as f:
                 self.doc_lengths = pickle.load(f)
 
@@ -164,9 +166,50 @@ class InvertedIndex:
         return (tf * (k1 + 1)) / (tf + k1 * length_norm)
     
     def __get_avg_doc_length(self) -> float:
-        total_length = sum(self.doc_lengths.values())
-        num_docs = len(self.doc_lengths)
-        return total_length / num_docs if num_docs > 0 else 0.0
+        if not self.doc_lengths:
+            return 0.0
+        return sum(self.doc_lengths.values()) / len(self.doc_lengths)
+        
+    def bm25(self, doc_id, term) -> float:
+        idf = self.get_bm25_idf(term)
+        tf = self.get_bm25_tf(doc_id, term)
+        return idf * tf
+    
+    def bm25_search(self, query, limit):
+        tokenize_query = normalize_tokens(query, stopwords=stopwords_list, stem=True)
+        doc_scores = defaultdict(float)
+        for token in tokenize_query:
+            for doc_id in self.index.get(token, set()):
+                doc_scores[doc_id] += self.bm25(doc_id, token)
+                
+        ranked_docs = sorted(doc_scores.items(), key=lambda x: x[1], reverse=True)
+        results = []
+        for doc_id, score in ranked_docs[:limit]:
+            title = self.docmap.get(doc_id, {}).get("title", "")
+            # debug breakdown
+            print(f"\n{'='*40}")
+            print(f"Doc {doc_id}: {title}")
+            print(f"  Total BM25 Score: {score:.4f}")
+            print(f"docs containing 'anim': {len(self.index.get('anim', set()))}")
+            print(f"docs containing 'famili': {len(self.index.get('famili', set()))}")
+            print(f"total docs: {len(self.docmap)}")
+            for token in tokenize_query:
+                idf = self.get_bm25_idf(token)
+                tf = self.get_bm25_tf(doc_id, token)
+                raw_tf = self.get_tf(doc_id, token)
+                doc_len = self.doc_lengths.get(doc_id, 0)
+                avg_len = self.__get_avg_doc_length()
+                print(f"  Token: '{token}'")
+                print(f"    raw TF:     {raw_tf}")
+                print(f"    BM25 TF:    {tf:.4f}")
+                print(f"    BM25 IDF:   {idf:.4f}")
+                print(f"    BM25 score: {idf * tf:.4f}")
+                print(f"    doc_len:    {doc_len}, avg_len: {avg_len:.2f}")
+                # if doc_id == 1907:
+                #     print(f"doc_length: {self.doc_lengths.get(1907)}")
+                #     print(f"term_freq: {self.term_freq.get(1907)}")
+            results.append({"id": doc_id, "title": title, "score": score})
+        return results
     
 def tokenize_single_term(term: str) -> str:
     """Normalize a single search term.
@@ -249,8 +292,10 @@ def key_word_search(query: str, items: list, match_type: MatchType = "partial") 
         ) from exc
     return matcher(query, items)
     
-def search_command(query_token: str, items: list, match_type: MatchType = "partial",index_dict={},docmap_dict={}) -> list:
+def search_command(query_token: str, items: list, match_type: MatchType = "partial") -> list:
     if match_type == "index":
+        invertedindex = InvertedIndex()
+        index_dict, docmap_dict, _, _ = invertedindex.load()
         if not index_dict or not docmap_dict:
             raise ValueError("index_dict and docmap_dict must be provided for index matching.")
         return _words_matching_index(query_token, index_dict, docmap_dict)
@@ -273,3 +318,8 @@ def bm25_tf_command(doc_id:int, term:str) -> float:
     invertedindex = InvertedIndex()
     invertedindex.load()
     return invertedindex.get_bm25_tf(doc_id, term)
+
+def bm25_search_command(query:str, limit=5) -> list:
+    invertedindex = InvertedIndex()
+    invertedindex.load()
+    return invertedindex.bm25_search(query, limit)

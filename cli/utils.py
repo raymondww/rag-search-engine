@@ -11,7 +11,7 @@ MOVIE_DATA = os.path.join(PROJECT_ROOT, "data", "movies.json")
 @lru_cache(maxsize=1)
 def get_stopwords() -> list[str]:
     with open(STOP_WORDS) as f:
-        return f.read().splitlines()
+        return [preprocessing(word) for word in f.read().splitlines()]
     
 @lru_cache(maxsize=1)
 def get_movies() -> list[dict]:
@@ -55,13 +55,14 @@ def preprocessing(text: str) -> str:
 def tokenize_text(text: str) -> list:
     '''Tokenize the input text by splitting on whitespace and remove empty token.
     '''
-    text_list = text.split()
-    for i, word in enumerate(text_list):
-        text_list[i] = word.strip()
-        if word == '':
-            text_list.pop(i)
-    return text_list
-    
+    valid_tokens = []
+    tokens = text.split()
+    valid_tokens = []
+    for token in tokens:
+        if token:                        
+            valid_tokens.append(token)
+    return valid_tokens
+        
 def stemming(text: list) -> list:
     """Stem tokens using NLTK's Porter stemmer.
 
