@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-api-url="https://YOUR-RENDER-APP.onrender.com">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -979,7 +979,7 @@
 
   // Search demo
   // Replace this URL with your actual Render backend URL once deployed
-  const API_URL = 'https://rag-search-engine-5swz.onrender.com';
+  const API_URL = document.documentElement.dataset.apiUrl || 'https://YOUR-RENDER-APP.onrender.com';
 
   async function runSearch() {
     const query = document.getElementById('search-input').value.trim();

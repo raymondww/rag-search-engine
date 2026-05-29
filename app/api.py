@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from cli.keyword_search import InvertedIndex
@@ -5,9 +6,15 @@ import uvicorn
 
 app = FastAPI(title="My RAG Search API")
 
+def get_allowed_origins(default_origin: str = "https://raymondww.github.io") -> list[str]:
+    raw_origins = os.getenv("ALLOWED_ORIGINS")
+    if raw_origins is None or not raw_origins.strip():
+        raw_origins = default_origin
+    return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://raymondww.github.io"],  
+    allow_origins=get_allowed_origins(),
     allow_methods=["GET"],
     allow_headers=["*"],
 )
@@ -36,4 +43,5 @@ def health():
     return {"status": "healthy", "indexed_docs": len(index.docmap)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
