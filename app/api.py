@@ -10,7 +10,8 @@ def get_allowed_origins(default_origin: str = "https://raymondww.github.io") -> 
     raw_origins = os.getenv("ALLOWED_ORIGINS")
     if raw_origins is None or not raw_origins.strip():
         raw_origins = default_origin
-    return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    stripped = [origin.strip() for origin in raw_origins.split(",")]
+    return [origin for origin in stripped if origin]
 
 app.add_middleware(
     CORSMiddleware,
