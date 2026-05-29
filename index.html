@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wenrui (Raymond) Wang — ML Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-2: #111113;
+    --bg-3: #1a1a1e;
+    --bg-4: #222228;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --text-2: #9a9991;
+    --text-3: #5a5952;
+    --accent: #5dcaa5;
+    --accent-dim: rgba(93,202,165,0.12);
+    --accent-2: #7f77dd;
+    --amber: #ef9f27;
+    --coral: #f0997b;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: rgba(93,202,165,0.25); }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 3rem;
+    background: rgba(10,10,11,0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-2);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 8rem 3rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%);
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(93,202,165,0.06) 0%, transparent 70%);
+    top: 50%; left: 60%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    max-width: 900px;
+  }
+
+  .hero-tag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-tag::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 7vw, 6rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  h1 .dim { color: var(--text-3); }
+  h1 .accent { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--text-2);
+    max-width: 520px;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #04342c;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover { background: #7ae3bc; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border-bright);
+  }
+
+  .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 2rem;
+    left: 3rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-scroll::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(to bottom, var(--text-3), transparent);
+  }
+
+  /* SECTIONS */
+  section {
+    padding: 6rem 3rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 3rem;
+  }
+
+  /* ABOUT */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  .about-text p {
+    color: var(--text-2);
+    margin-bottom: 1.25rem;
+    font-weight: 300;
+  }
+
+  .about-text p strong {
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .about-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .fact-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+  }
+
+  .fact-row:first-child { border-top: 1px solid var(--border); }
+
+  .fact-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .fact-value {
+    font-size: 14px;
+    color: var(--text-2);
+    text-align: right;
+  }
+
+  .fact-value .hi { color: var(--text); }
+
+  /* PROJECTS */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .project-card {
+    background: var(--bg);
+    padding: 2rem;
+    position: relative;
+    transition: background 0.2s;
+    cursor: default;
+  }
+
+  .project-card:hover { background: var(--bg-3); }
+
+  .project-card.featured {
+    grid-column: span 2;
+    background: var(--bg-2);
+  }
+
+  .project-card.featured:hover { background: var(--bg-3); }
+
+  .project-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    margin-bottom: 1.25rem;
+    display: inline-block;
+  }
+
+  .status-live { background: var(--accent-dim); color: var(--accent); }
+  .status-building { background: rgba(239,159,39,0.12); color: var(--amber); }
+  .status-complete { background: rgba(127,119,221,0.12); color: var(--accent-2); }
+
+  .project-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+
+  .project-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+  }
+
+  .project-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-3);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .project-arrow {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    color: var(--text-3);
+    font-size: 1.2rem;
+    transition: all 0.2s;
+  }
+
+  .project-card:hover .project-arrow {
+    color: var(--accent);
+    transform: translate(2px, -2px);
+  }
+
+  /* SEARCH DEMO */
+  .demo-section {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: 2.5rem;
+    margin-top: 4rem;
+  }
+
+  .demo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .demo-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .demo-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid rgba(239,159,39,0.25);
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  .search-bar {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border-bright);
+    background: var(--bg);
+    margin-bottom: 1.5rem;
+    transition: border-color 0.2s;
+  }
+
+  .search-bar:focus-within { border-color: var(--accent); }
+
+  .search-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.85rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    caret-color: var(--accent);
+  }
+
+  .search-bar input::placeholder { color: var(--text-3); }
+
+  .search-bar button {
+    background: var(--accent);
+    border: none;
+    color: #04342c;
+    padding: 0 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .search-bar button:hover { background: #7ae3bc; }
+
+  .search-results { min-height: 60px; }
+
+  .result-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .result-rank {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    min-width: 20px;
+  }
+
+  .result-title {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .result-score {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .search-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 1rem;
+    line-height: 1.6;
+  }
+
+  .search-note a { color: var(--accent); text-decoration: none; }
+  .search-note a:hover { text-decoration: underline; }
+
+  /* SKILLS */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .skill-group {
+    background: var(--bg);
+    padding: 1.75rem;
+  }
+
+  .skill-group-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .skill-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .skill-list li {
+    font-size: 13px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 300;
+  }
+
+  .skill-list li::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--border-bright);
+    flex-shrink: 0;
+  }
+
+  /* CONTACT */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  .contact-text {
+    color: var(--text-2);
+    font-weight: 300;
+    margin-bottom: 1.25rem;
+  }
+
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .contact-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    transition: all 0.2s;
+    group: true;
+  }
+
+  .contact-link:first-child { border-top: 1px solid var(--border); }
+
+  .contact-link-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .contact-link-value {
+    font-size: 14px;
+    color: var(--text-2);
+    transition: color 0.2s;
+  }
+
+  .contact-link:hover .contact-link-value { color: var(--accent); }
+
+  .contact-link-arrow {
+    color: var(--text-3);
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .contact-link:hover .contact-link-arrow { color: var(--accent); transform: translate(2px, -2px); }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+  }
+
+  .footer-copy {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+
+  .footer-built {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .footer-built span { color: var(--accent); }
+
+  /* DIVIDER */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 0 3rem;
+    max-width: calc(100% - 6rem);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { gap: 1.25rem; }
+    section { padding: 4rem 1.5rem; }
+    .hero { padding: 7rem 1.5rem 4rem; }
+    .hero-scroll { left: 1.5rem; }
+    .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .contact-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .project-card.featured { grid-column: span 1; }
+    footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+  }
+
+  /* ANIMATION */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .fade-up.visible { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="nav-logo">rw.dev</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="max-width: 100%; padding-left: 3rem; padding-right: 3rem;">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-tag">ML Engineer · Data Scientist</div>
+    <h1>
+      Wenrui<br>
+      <span class="dim">(Raymond)</span><br>
+      <span class="accent">Wang</span>
+    </h1>
+    <p class="hero-sub">
+      Building intelligent search, computer vision pipelines, and applied ML systems.
+      Currently completing a Master of Data Science at UBC — graduating June 2026.
+    </p>
+    <div class="hero-cta">
+      <a href="#projects" class="btn btn-primary">View Projects →</a>
+      <a href="https://github.com/raymondwang" target="_blank" class="btn btn-ghost">GitHub ↗</a>
+      <a href="https://linkedin.com/in/raymondwang" target="_blank" class="btn btn-ghost">LinkedIn ↗</a>
+    </div>
+  </div>
+  <div class="hero-scroll">scroll</div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" style="max-width: 1100px; margin: 0 auto;">
+  <div class="section-label">About</div>
+  <h2>Background</h2>
+  <div class="about-grid fade-up">
+    <div class="about-text">
+      <p>
+        I'm a trilingual data scientist and ML engineer with <strong>three years of industry experience</strong>
+        at JLL in Guangzhou, where I built LLM pipelines, OCR scrapers, and computer vision
+        models applied to street-view imagery.
+      </p>
+      <p>
+        My work sits at the intersection of <strong>applied ML, search systems, and autonomous perception</strong>.
+        I'm particularly drawn to problems involving video, temporal modelling, and multi-modal data —
+        which led me to my UBC capstone project MooVision, a real-time dairy calf behavior
+        detection system using YOLOv8, ByteTrack, and LSTM.
+      </p>
+      <p>
+        Outside of work I follow autonomous vehicles and robotics closely, play golf badly,
+        and have three cats who have no opinions about machine learning.
+      </p>
+    </div>
+    <div class="about-facts">
+      <div class="fact-row">
+        <span class="fact-label">Education</span>
+        <span class="fact-value"><span class="hi">MDS, UBC</span> · 2025–2026</span>
+      </div>
+      <div class="fact-row">
+        <span class="fact-label">Undergrad</span>
+        <span class="fact-value"><span class="hi">BCom IT, TMU</span> · 2021</span>
+      </div>
+      <div class="fact-row">
+        <span class="fact-label">Experience</span>
+        <span class="fact-value"><span class="hi">3 yrs</span> · JLL, Guangzhou</span>
+      </div>
+      <div class="fact-row">
+        <span class="fact-label">Languages</span>
+        <span class="fact-value">English · Mandarin · Cantonese</span>
+      </div>
+      <div class="fact-row">
+        <span class="fact-label">Based in</span>
+        <span class="fact-value"><span class="hi">Vancouver, BC</span></span>
+      </div>
+      <div class="fact-row">
+        <span class="fact-label">Status</span>
+        <span class="fact-value" style="color: var(--accent);">Open to opportunities</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects" style="max-width: 1100px; margin: 0 auto;">
+  <div class="section-label">Work</div>
+  <h2>Projects</h2>
+
+  <div class="projects-grid fade-up">
+
+    <!-- MooVision - featured -->
+    <div class="project-card featured">
+      <span class="project-arrow">↗</span>
+      <div class="project-status status-complete">Capstone · UBC 2026</div>
+      <div class="project-title">MooVision</div>
+      <p class="project-desc">
+        Real-time dairy calf behavior detection system using YOLOv8 for object detection,
+        ByteTrack for multi-object tracking, and LSTM for temporal behavior classification.
+        Built to assist precision livestock farming with automated welfare monitoring.
+      </p>
+      <div class="project-tags">
+        <span class="tag">YOLOv8</span>
+        <span class="tag">ByteTrack</span>
+        <span class="tag">LSTM</span>
+        <span class="tag">PyTorch</span>
+        <span class="tag">Computer Vision</span>
+        <span class="tag">Python</span>
+      </div>
+    </div>
+
+    <!-- RAG Search Engine -->
+    <div class="project-card">
+      <span class="project-arrow">↗</span>
+      <div class="project-status status-building">In Progress</div>
+      <div class="project-title">RAG Search Engine</div>
+      <p class="project-desc">
+        Full-stack retrieval-augmented generation engine with BM25 keyword search,
+        inverted index, TF-IDF scoring, and semantic vector search. Demo live below.
+      </p>
+      <div class="project-tags">
+        <span class="tag">BM25</span>
+        <span class="tag">Inverted Index</span>
+        <span class="tag">FastAPI</span>
+        <span class="tag">Python</span>
+        <span class="tag">NLP</span>
+      </div>
+    </div>
+
+    <!-- Vacancy Anxiety Index -->
+    <div class="project-card">
+      <span class="project-arrow">↗</span>
+      <div class="project-status status-complete">Complete</div>
+      <div class="project-title">Vacancy Anxiety Index</div>
+      <p class="project-desc">
+        Propensity scoring and recommendation system modelling tenant anxiety around
+        commercial vacancy, built during tenure at JLL.
+      </p>
+      <div class="project-tags">
+        <span class="tag">Propensity Scoring</span>
+        <span class="tag">Sklearn</span>
+        <span class="tag">Feature Engineering</span>
+      </div>
+    </div>
+
+    <!-- Ruijian Shuju -->
+    <div class="project-card">
+      <span class="project-arrow">↗</span>
+      <div class="project-status status-complete">Complete</div>
+      <div class="project-title">睿见数据 — News Intelligence</div>
+      <p class="project-desc">
+        LLM-powered news intelligence platform with OCR scraping pipeline and
+        structured extraction from unstructured Chinese-language media sources.
+      </p>
+      <div class="project-tags">
+        <span class="tag">LLM Pipelines</span>
+        <span class="tag">OCR</span>
+        <span class="tag">GPT-3.5</span>
+        <span class="tag">NLP</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LIVE SEARCH DEMO -->
+  <div class="demo-section fade-up">
+    <div class="demo-header">
+      <div class="demo-title">Live Search Demo — BM25 Movie Search</div>
+      <div class="demo-badge">⚡ Powered by my RAG engine</div>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Try: animated family, sci-fi space, action heist..." />
+      <button onclick="runSearch()">Search</button>
+    </div>
+    <div class="search-results" id="search-results">
+      <p style="font-family: var(--font-mono); font-size: 12px; color: var(--text-3);">
+        Enter a query above to search 5,000 movies using BM25 ranking.
+      </p>
+    </div>
+    <p class="search-note">
+      This demo calls a Python FastAPI backend running my BM25 search engine with stemming,
+      stopword removal, and length normalization. <br>
+      Backend hosted on <a href="https://render.com" target="_blank">Render</a> ·
+      Source on <a href="https://github.com/raymondwang" target="_blank">GitHub ↗</a>
+    </p>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section id="skills" style="max-width: 1100px; margin: 0 auto;">
+  <div class="section-label">Stack</div>
+  <h2>Skills</h2>
+  <div class="skills-grid fade-up">
+    <div class="skill-group">
+      <div class="skill-group-label">ML / AI</div>
+      <ul class="skill-list">
+        <li>PyTorch · TensorFlow</li>
+        <li>YOLOv8 · ByteTrack</li>
+        <li>Scikit-learn</li>
+        <li>LLM pipelines · RAG</li>
+        <li>BM25 · TF-IDF · Embeddings</li>
+        <li>LSTM · RNN · Transformers</li>
+      </ul>
+    </div>
+    <div class="skill-group">
+      <div class="skill-group-label">Data Engineering</div>
+      <ul class="skill-list">
+        <li>Python · R · SQL</li>
+        <li>Pandas · NumPy · Polars</li>
+        <li>OCR pipelines</li>
+        <li>Spark · dbt</li>
+        <li>REST APIs · FastAPI</li>
+        <li>Airflow · ETL</li>
+      </ul>
+    </div>
+    <div class="skill-group">
+      <div class="skill-group-label">Computer Vision</div>
+      <ul class="skill-list">
+        <li>Object detection</li>
+        <li>Multi-object tracking</li>
+        <li>Street-view imagery</li>
+        <li>OpenCV · PIL</li>
+        <li>Video pipelines</li>
+        <li>Spatial analysis</li>
+      </ul>
+    </div>
+    <div class="skill-group">
+      <div class="skill-group-label">Tools & Cloud</div>
+      <ul class="skill-list">
+        <li>Git · GitHub Actions</li>
+        <li>Docker · Render</li>
+        <li>AWS · GCP basics</li>
+        <li>Jupyter · VS Code</li>
+        <li>Shiny · Streamlit</li>
+        <li>PostgreSQL · MongoDB</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" style="max-width: 1100px; margin: 0 auto;">
+  <div class="section-label">Contact</div>
+  <h2>Get in touch</h2>
+  <div class="contact-grid fade-up">
+    <div>
+      <p class="contact-text">
+        I'm actively looking for data science and ML engineering roles in Canada.
+        I'm open to sponsorship conversations — my study permit runs through September 2026.
+      </p>
+      <p class="contact-text">
+        Whether it's a role, a collaboration, or just a conversation about RAG systems
+        or autonomous perception — reach out.
+      </p>
+    </div>
+    <div class="contact-links">
+      <a href="mailto:raymond@example.com" class="contact-link">
+        <span class="contact-link-label">Email</span>
+        <span class="contact-link-value">raymond@example.com</span>
+        <span class="contact-link-arrow">↗</span>
+      </a>
+      <a href="https://linkedin.com/in/raymondwang" target="_blank" class="contact-link">
+        <span class="contact-link-label">LinkedIn</span>
+        <span class="contact-link-value">linkedin.com/in/raymondwang</span>
+        <span class="contact-link-arrow">↗</span>
+      </a>
+      <a href="https://github.com/raymondwang" target="_blank" class="contact-link">
+        <span class="contact-link-label">GitHub</span>
+        <span class="contact-link-value">github.com/raymondwang</span>
+        <span class="contact-link-arrow">↗</span>
+      </a>
+      <a href="/resume.pdf" class="contact-link">
+        <span class="contact-link-label">Resume</span>
+        <span class="contact-link-value">Download PDF</span>
+        <span class="contact-link-arrow">↓</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="footer-copy">© 2026 Wenrui (Raymond) Wang</span>
+  <span class="footer-built">Built with <span>HTML · FastAPI · BM25</span></span>
+</footer>
+
+<script>
+  // Intersection observer for fade-up animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  // Search demo
+  // Replace this URL with your actual Render backend URL once deployed
+  const API_URL = 'https://rag-search-engine-5swz.onrender.com';
+
+  async function runSearch() {
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) return;
+
+    const resultsEl = document.getElementById('search-results');
+    resultsEl.innerHTML = '<p style="font-family: var(--font-mono); font-size: 12px; color: var(--text-3);">Searching...</p>';
+
+    try {
+      const res = await fetch(`${API_URL}/search?query=${encodeURIComponent(query)}&limit=5`);
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+
+      if (!data.results || data.results.length === 0) {
+        resultsEl.innerHTML = '<p style="font-family: var(--font-mono); font-size: 12px; color: var(--text-3);">No results found.</p>';
+        return;
+      }
+
+      resultsEl.innerHTML = data.results.map((r, i) => `
+        <div class="result-item">
+          <span class="result-rank">${i + 1}</span>
+          <span class="result-title">${r.title}</span>
+          <span class="result-score">${r.score.toFixed(2)}</span>
+        </div>
+      `).join('');
+
+    } catch (err) {
+      resultsEl.innerHTML = `
+        <p style="font-family: var(--font-mono); font-size: 12px; color: var(--coral);">
+          Backend not yet connected — deploy to Render and update API_URL in the script.
+        </p>`;
+    }
+  }
+
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runSearch();
+  });
+</script>
+
+</body>
+</html>

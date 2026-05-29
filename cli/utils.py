@@ -40,6 +40,16 @@ def read_json(file_path: str | os.PathLike[str]) -> list:
         return movie_list
     
 def preprocessing(text: str) -> str:
+    '''Preprocess the input text by converting to lowercase and removing punctuation.
+    Parameters
+    ----------
+    text : str
+        The input text to preprocess.
+    Returns
+    -------
+    str
+        The preprocessed text, which is the original text converted to lowercase and with all punctuation removed.
+    '''
     def change_to_lowercase(text: str) -> str:
         return text.lower()
     def remove_punctuation(text: str) -> str:

@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from keyword_search import InvertedIndex
+from cli.keyword_search import InvertedIndex
 import uvicorn
 
 app = FastAPI(title="My RAG Search API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["https://raymondww.github.io"],  
     allow_methods=["GET"],
     allow_headers=["*"],
 )
