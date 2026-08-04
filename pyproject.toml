@@ -1,0 +1,22 @@
+[project]
+name = "rag-search-engine"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.139.0",
+    "nltk==3.9.1",
+    "numpy==2.3.3",
+    "sentence-transformers>=5.5.1",
+    "uvicorn>=0.49.0",
+]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Tell setuptools we are using package directories at the repo root
+# (engine/, cli/, utils/ all have __init__.py already, so they qualify)
+packages = ["rag_engine", "cli", "utils"]
