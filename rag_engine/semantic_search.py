@@ -25,14 +25,21 @@ class SemanticSearch:
     
     @staticmethod
     def semantic_chunking(query: str, max_chunk_size: int = 100, overlap: int = 0) -> list:
+        query = query.strip()
+        if not query:
+            return []
         sentences = re.split(r"(?<=[.!?])\s+", query)
+        if len(sentences) == 1 and str.endswith(sentences[0], (".", "!", "?")):
+            return [sentences]
+        
         step = max_chunk_size - overlap
 
         chunks = []
         start = 0
         while start < len(sentences):
             end = start + max_chunk_size
-            chunks.append(sentences[start:end])
+            cleaned_chunk = [s.strip() for s in sentences[start:end]]
+            chunks.append(cleaned_chunk)
             if end >= len(sentences):
                 break
             start += step
