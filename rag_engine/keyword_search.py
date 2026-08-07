@@ -3,7 +3,7 @@ import math
 import pickle
 from typing import Literal
 from collections import defaultdict, Counter
-from utils.search_utils import get_stopwords, normalize_tokens, get_movies, preprocessing
+from utils.search_utils import get_stopwords, normalize_tokens, get_movies, preprocessing, format_search_result
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
@@ -184,29 +184,17 @@ class InvertedIndex:
         results = []
         for doc_id, score in ranked_docs[:limit]:
             title = self.docmap.get(doc_id, {}).get("title", "")
-            # debug breakdown
-            print(f"\n{'='*40}")
-            print(f"Doc {doc_id}: {title}")
-            print(f"  Total BM25 Score: {score:.4f}")
-            print(f"docs containing 'anim': {len(self.index.get('anim', set()))}")
-            print(f"docs containing 'famili': {len(self.index.get('famili', set()))}")
-            print(f"total docs: {len(self.docmap)}")
-            for token in tokenize_query:
-                idf = self.get_bm25_idf(token)
-                tf = self.get_bm25_tf(doc_id, token)
-                raw_tf = self.get_tf(doc_id, token)
-                doc_len = self.doc_lengths.get(doc_id, 0)
-                avg_len = self.__get_avg_doc_length()
-                print(f"  Token: '{token}'")
-                print(f"    raw TF:     {raw_tf}")
-                print(f"    BM25 TF:    {tf:.4f}")
-                print(f"    BM25 IDF:   {idf:.4f}")
-                print(f"    BM25 score: {idf * tf:.4f}")
-                print(f"    doc_len:    {doc_len}, avg_len: {avg_len:.2f}")
+            # for token in tokenize_query:
+                # idf = self.get_bm25_idf(token)
+                # tf = self.get_bm25_tf(doc_id, token)
+                # raw_tf = self.get_tf(doc_id, token)
+                # doc_len = self.doc_lengths.get(doc_id, 0)
+                # avg_len = self.__get_avg_doc_length()
                 # if doc_id == 1907:
                 #     print(f"doc_length: {self.doc_lengths.get(1907)}")
                 #     print(f"term_freq: {self.term_freq.get(1907)}")
-            results.append({"id": doc_id, "title": title, "score": score})
+            format_result = format_search_result(doc_id, title, self.docmap.get(doc_id, {}).get("description", ""), score)
+            results.append(format_result)
         return results
     def search_with_trace(self, query: str, limit: int = 5) -> dict:
         lowered = query.lower()
