@@ -17,6 +17,12 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="Query string")
     rrf_search_parser.add_argument("-k", type=int, default=5, help="RRF parameter k")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="Number of results to return")
+    rrf_search_parser.add_argument(
+        "--enhance",
+        type=str,
+        choices=["spell","rewrite","expand"],
+        help="Query enhancement method",
+    )    
     
     args = parser.parse_args()
 
@@ -44,6 +50,7 @@ def main() -> None:
                     print(f"Hybrid Score: {result['combined_score']:.3f}")
                     print(f"BM25: {result['bm25_score']:.3f}, Semantic: {result['semantic_score']:.3f}")
                     print(result['description'])
+                    
         case "rrf-search":
             from utils.search_utils import get_movies
             from rag_engine.hybrid_search import HybridSearch
@@ -51,6 +58,19 @@ def main() -> None:
                 query = args.query
                 k = args.k
                 limit = args.limit
+                if args.enhance == "spell":
+                    from rag_engine.llm_check import spell_check_query
+                    enhanced_query = spell_check_query(query)
+                    print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced_query}'\n")
+                if args.enhance == "rewrite":
+                    from rag_engine.llm_check import rewrite_query
+                    enhanced_query = rewrite_query(query)
+                    print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced_query}'\n")
+                if args.enhance == "expand":
+                    from rag_engine.llm_check import expand_query
+                    enhanced_query = expand_query(query)
+                    print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced_query}'\n")
+                    
                 documents = get_movies()
                 rrf_searches = HybridSearch(documents)
                 rrf_results = rrf_searches.rrf_search(query, k, limit)

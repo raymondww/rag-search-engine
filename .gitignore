@@ -13,3 +13,6 @@ wheels/
 
 # cache
 cache/*
+
+# .env
+.env
