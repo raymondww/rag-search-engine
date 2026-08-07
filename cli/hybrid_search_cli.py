@@ -46,6 +46,19 @@ def main() -> None:
                     print(result['description'])
         case "rrf-search":
             from utils.search_utils import get_movies
+            from rag_engine.hybrid_search import HybridSearch
+            if args.query:
+                query = args.query
+                k = args.k
+                limit = args.limit
+                documents = get_movies()
+                rrf_searches = HybridSearch(documents)
+                rrf_results = rrf_searches.rrf_search(query, k, limit)
+                for i,result in enumerate(rrf_results):
+                    print(f"{i}. {result['title']}")
+                    print(f"RRF Score: {result['rrf_score']:.3f}")
+                    print(f"BM25: {result['bm25_rank']}, Semantic: {result['semantic_rank']}")
+                    print(result['description'])
         case _:
             parser.print_help()
 
