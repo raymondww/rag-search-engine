@@ -13,33 +13,31 @@ client = OpenAI(
     api_key=api_key,
 )
 
-def spell_check_query(query):
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages = [
-            {
-                "role": "user",
-                "content": f"""Fix any spelling errors in the user-provided movie search query below.
+model="openrouter/free"
+
+def spell_check_query(query:str) -> str:
+    prompt = f"""Fix any spelling errors in the user-provided movie search query below.
                         Correct only clear, high-confidence typos. Do not rewrite, add, remove, or reorder words.
                         Preserve punctuation and capitalization unless a change is required for a typo fix.
                         If there are no spelling errors, or if you're unsure, output the original query unchanged.
                         Output only the final query text, nothing else.
                         User query: "{query}"
-                        """,
+                        """
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
             }
         ]
     )
 
-    if response.choices[0].message.content:
-        return response.choices[0].message.content
+    corrected = (response.choices[0].message.content or "").strip().strip('"')
+    return corrected if corrected else query
 
-def rewrite_query(query):
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages = [
-            {
-                "role": "user",
-                "content": f"""Rewrite the user-provided movie search query below to be more specific and searchable.
+def rewrite_query(query:str) -> str:
+    prompt = f"""Rewrite the user-provided movie search query below to be more specific and searchable.
                             Consider:
                             - Common movie knowledge (famous actors, popular films)
                             - Genre conventions (horror = scary, animation = cartoon)
@@ -56,21 +54,22 @@ def rewrite_query(query):
                             Output only the rewritten query text, nothing else.
 
                             User query: "{query}"
-                            """,
+                            """
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt,
             }
         ]
     )
 
-    if response.choices[0].message.content:
-        return response.choices[0].message.content
-    
-def expand_query(query):
-    response = client.chat.completions.create(
-        model="openrouter/free",
-        messages = [
-            {
-                "role": "user",
-                "content": f"""Expand the user-provided movie search query below with related terms.
+    rewritten = (response.choices[0].message.content or "").strip().strip('"')
+    return rewritten if rewritten else query
+
+def expand_query(query:str) -> str:
+    prompt = f"""Expand the user-provided movie search query below with related terms.
                             Add synonyms and related concepts that might appear in movie descriptions.
                             Keep expansions relevant and focused.
                             Output only the additional terms; they will be appended to the original query.
@@ -82,9 +81,43 @@ def expand_query(query):
 
                             User query: "{query}"
                             """
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
             }
         ]
     )
+    
+    expanded_terms = (response.choices[0].message.content or "").strip().strip('"')
+    return f"{query} {expanded_terms}".strip()
+    
+def rerank_results(query,doc, method="individual"):
+    prompt = f"""Rate how well this movie matches the search query.
+                            Query: "{query}"
+                            Movie: {doc.get("title", "")} - {doc.get("document", "")}
 
-    if response.choices[0].message.content:
-        return response.choices[0].message.content
+                            Consider:
+                            - Direct relevance to query
+                            - User intent (what they're looking for)
+                            - Content appropriateness
+
+                            Rate 0-10 (10 = perfect match).
+                            Output ONLY the number in your response, no other text or explanation.
+
+                            Score:"""
+    if method == "individual":
+            response = client.chat.completions.create(
+            model = model,
+            messages = [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+    rerank = (response.choices[0].message.content or "").strip().strip('"')
+    return rerank if rerank else 0
