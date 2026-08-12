@@ -95,28 +95,49 @@ def expand_query(query:str) -> str:
     return f"{query} {expanded_terms}".strip()
     
 def rerank_results(query,doc, method="individual"):
-    prompt = f"""Rate how well this movie matches the search query.
-                            Query: "{query}"
-                            Movie: {doc.get("title", "")} - {doc.get("document", "")}
-
-                            Consider:
-                            - Direct relevance to query
-                            - User intent (what they're looking for)
-                            - Content appropriateness
-
-                            Rate 0-10 (10 = perfect match).
-                            Output ONLY the number in your response, no other text or explanation.
-
-                            Score:"""
     if method == "individual":
-            response = client.chat.completions.create(
-            model = model,
-            messages = [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
+        prompt = f"""Rate how well this movie matches the search query.
+                                Query: "{query}"
+                                Movie: {doc.get("title", "")} - {doc.get("document", "")}
+
+                                Consider:
+                                - Direct relevance to query
+                                - User intent (what they're looking for)
+                                - Content appropriateness
+
+                                Rate 0-10 (10 = perfect match).
+                                Output ONLY the number in your response, no other text or explanation.
+
+                                Score:"""
+
+    elif method == "batch":
+            prompt = f"""Rank the movies listed below by relevance to the following search query.
+
+                    Query: "{query}"
+
+                    Movies:
+                    {doc}
+
+                    Return the movie IDs in order of relevance, best match first.
+
+                    Your response must be a raw JSON array of integers.
+                    Do not wrap the JSON in Markdown. Do not use a ```json code block.
+                    Do not include any explanatory text.
+
+                    For example:
+                    [75, 12, 34, 2, 1]
+
+                    Ranking:"""
+    response = client.chat.completions.create(
+    model = model,
+    messages = [
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+)
     rerank = (response.choices[0].message.content or "").strip().strip('"')
-    return rerank if rerank else 0
+    if not rerank:
+        return "0" if method == "individual" else "[]"
+    return rerank

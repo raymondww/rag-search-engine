@@ -31,7 +31,7 @@ class HybridSearch:
             combined[doc["id"]] = {
                 "title": doc["title"],
                 "doc_id": doc["id"],
-                "description": doc["document"],
+                "document": doc["document"],
                 "bm25_score": norm_score,
                 "semantic_score": 0.0,
             }
@@ -41,7 +41,7 @@ class HybridSearch:
                 combined[doc["id"]] = {
                     "title": doc["title"],
                     "doc_id": doc["id"],
-                    "description": doc["document"],
+                    "document": doc["document"],
                     "bm25_score": 0.0,
                     "semantic_score": norm_score,
                 }
@@ -68,7 +68,7 @@ def combine_rrf_results(bm25_results: list[dict], semantic_results: list[dict], 
         combined[doc["id"]] = {
             "title": doc["title"],
             "doc_id": doc["id"],
-            "description": doc["document"],
+            "document": doc["document"],
             "bm25_rank": rank,
             "semantic_rank": None,
             "rrf_score": rrf_score(rank, k),
@@ -79,7 +79,7 @@ def combine_rrf_results(bm25_results: list[dict], semantic_results: list[dict], 
             combined[doc["id"]] = {
                 "title": doc["title"],
                 "doc_id": doc["id"],
-                "description": doc["document"],
+                "document": doc["document"],
                 "bm25_rank": None,
                 "semantic_rank": rank,
                 "rrf_score": rrf_score(rank, k),

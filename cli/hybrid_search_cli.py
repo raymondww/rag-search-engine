@@ -26,7 +26,7 @@ def main() -> None:
     rrf_search_parser.add_argument(
         "--rerank-method", 
         type=str, 
-        choices=["individual"], 
+        choices=["individual","batch","cross_encoder"], 
         help="Reranking method for RRF search"
         )
     
@@ -80,20 +80,47 @@ def main() -> None:
                     query = expand_query(query)
                     print(f"Enhanced query (expand): '{args.query}' -> '{query}'\n")
 
-                search_limit = limit * 5 if args.rerank_method == "individual" else limit
+                search_limit = limit * 5 if args.rerank_method in ("individual", "batch", "cross_encoder") else limit
                 rrf_results = rrf_searches.rrf_search(query, k, search_limit)
 
                 if args.rerank_method == "individual":
                     from rag_engine.query_enhancement import rerank_results
                     print(f"Re-ranking top {limit} results using {args.rerank_method} method...")
-                    for i,result in enumerate(rrf_results):
+                    for i,doc in enumerate(rrf_results):
                         print(f"Re-ranking {i}/{len(rrf_results)}...")
 
-                        score = rerank_results(query, result, method="individual")
-                        result["rerank_score"] = float(score)
+                        score = rerank_results(query, doc, method="individual")
+                        doc["rerank_score"] = float(score)
                         time.sleep(3)
                     rrf_results.sort(key=lambda x: x["rerank_score"], reverse=True)
-
+                    
+                elif args.rerank_method == "batch":
+                    import json
+                    from rag_engine.query_enhancement import rerank_results
+                    print(f"Re-ranking top {limit} results using {args.rerank_method} method...")
+                    doc_list_str = "\n".join(
+                        f"ID {r['doc_id']}: {r['title']} - {r['document'][:200]}"
+                        for r in rrf_results
+                    )
+                    ranking = rerank_results(query, doc_list_str, method="batch")
+                    try:
+                        json_ranking = json.loads(ranking)
+                        rrf_results.sort(key=lambda x: json_ranking.index(x["doc_id"]) if x["doc_id"] in json_ranking else float('inf'))
+                    except json.JSONDecodeError:
+                        print("Error: Failed to parse JSON ranking. Please check the response format.")
+                        return
+                
+                elif args.rerank_method == "cross_encoder":
+                    from sentence_transformers import CrossEncoder
+                    cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+                    pairs = []
+                    for doc in rrf_results:
+                        pairs.append([query, f"{doc.get('title', '')} - {doc.get('document', '')}"])
+                    scores = cross_encoder.predict(pairs)
+                    for doc, score in zip(rrf_results, scores):
+                        doc["cross_encoder_score"] = float(score)
+                    rrf_results.sort(key=lambda x: x["cross_encoder_score"], reverse=True)
+                    
                 rrf_results = rrf_results[:limit]
 
                 print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):\n")
@@ -101,9 +128,13 @@ def main() -> None:
                     print(f"{i}. {result['title']}")
                     if args.rerank_method == "individual":
                         print(f"   Re-rank Score: {result['rerank_score']:.3f}/10")
+                    elif args.rerank_method == "batch":
+                        print(f"   Re-rank Rank: {i}")
+                    elif args.rerank_method == "cross_encoder":
+                        print(f"   Cross Encoder Score: {scores[rrf_results.index(result)]:.3f}")
                     print(f"   RRF Score: {result['rrf_score']:.3f}")
                     print(f"   BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}")
-                    print(f"   {result['description']}")
+                    print(f"   {result['document']}")
         case _:
             parser.print_help()
 
