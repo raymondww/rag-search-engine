@@ -58,35 +58,38 @@ class HybridSearch:
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
         bm25_results = self._bm25_search(query, 500 * limit)
         semantic_results = self.semantic_search.search_chunks(query, 500 * limit)
+            
+        return combine_rrf_results(bm25_results, semantic_results, k, limit)
 
-        combined = {}
+def combine_rrf_results(bm25_results: list[dict], semantic_results: list[dict], k: int, limit: int) -> list[dict]:
+    combined = {}
 
-        for rank, doc in enumerate(bm25_results, start=1):
+    for rank, doc in enumerate(bm25_results, start=1):
+        combined[doc["id"]] = {
+            "title": doc["title"],
+            "doc_id": doc["id"],
+            "description": doc["document"],
+            "bm25_rank": rank,
+            "semantic_rank": None,
+            "rrf_score": rrf_score(rank, k),
+        }
+
+    for rank, doc in enumerate(semantic_results, start=1):
+        if doc["id"] not in combined:
             combined[doc["id"]] = {
                 "title": doc["title"],
                 "doc_id": doc["id"],
                 "description": doc["document"],
-                "bm25_rank": rank,
-                "semantic_rank": None,
+                "bm25_rank": None,
+                "semantic_rank": rank,
                 "rrf_score": rrf_score(rank, k),
             }
+        else:
+            combined[doc["id"]]["semantic_rank"] = rank
+            combined[doc["id"]]["rrf_score"] += rrf_score(rank, k)
 
-        for rank, doc in enumerate(semantic_results, start=1):
-            if doc["id"] not in combined:
-                combined[doc["id"]] = {
-                    "title": doc["title"],
-                    "doc_id": doc["id"],
-                    "description": doc["document"],
-                    "bm25_rank": None,
-                    "semantic_rank": rank,
-                    "rrf_score": rrf_score(rank, k),
-                }
-            else:
-                combined[doc["id"]]["semantic_rank"] = rank
-                combined[doc["id"]]["rrf_score"] += rrf_score(rank, k)
-
-        results = list(combined.values())
-        return sorted(results, key=lambda x: x["rrf_score"], reverse=True)[:limit]   
+    results = list(combined.values())
+    return sorted(results, key=lambda x: x["rrf_score"], reverse=True)[:limit]   
         
 def hybrid_score(bm25_score: float, semantic_score: float, alpha: float = 0.5) -> float:
     return alpha * bm25_score + (1 - alpha) * semantic_score

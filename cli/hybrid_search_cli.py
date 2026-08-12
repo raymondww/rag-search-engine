@@ -1,5 +1,5 @@
 import argparse
-
+import time
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -22,7 +22,13 @@ def main() -> None:
         type=str,
         choices=["spell","rewrite","expand"],
         help="Query enhancement method",
-    )    
+        )    
+    rrf_search_parser.add_argument(
+        "--rerank-method", 
+        type=str, 
+        choices=["individual"], 
+        help="Reranking method for RRF search"
+        )
     
     args = parser.parse_args()
 
@@ -58,27 +64,46 @@ def main() -> None:
                 query = args.query
                 k = args.k
                 limit = args.limit
-                if args.enhance == "spell":
-                    from rag_engine.llm_check import spell_check_query
-                    enhanced_query = spell_check_query(query)
-                    print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced_query}'\n")
-                if args.enhance == "rewrite":
-                    from rag_engine.llm_check import rewrite_query
-                    enhanced_query = rewrite_query(query)
-                    print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced_query}'\n")
-                if args.enhance == "expand":
-                    from rag_engine.llm_check import expand_query
-                    enhanced_query = expand_query(query)
-                    print(f"Enhanced query ({args.enhance}): '{query}' -> '{enhanced_query}'\n")
-                    
                 documents = get_movies()
                 rrf_searches = HybridSearch(documents)
-                rrf_results = rrf_searches.rrf_search(query, k, limit)
-                for i,result in enumerate(rrf_results):
+
+                if args.enhance == "spell":
+                    from rag_engine.query_enhancement import spell_check_query
+                    query = spell_check_query(query)
+                    print(f"Enhanced query (spell): '{args.query}' -> '{query}'\n")
+                elif args.enhance == "rewrite":
+                    from rag_engine.query_enhancement import rewrite_query
+                    query = rewrite_query(query)
+                    print(f"Enhanced query (rewrite): '{args.query}' -> '{query}'\n")
+                elif args.enhance == "expand":
+                    from rag_engine.query_enhancement import expand_query
+                    query = expand_query(query)
+                    print(f"Enhanced query (expand): '{args.query}' -> '{query}'\n")
+
+                search_limit = limit * 5 if args.rerank_method == "individual" else limit
+                rrf_results = rrf_searches.rrf_search(query, k, search_limit)
+
+                if args.rerank_method == "individual":
+                    from rag_engine.query_enhancement import rerank_results
+                    print(f"Re-ranking top {limit} results using {args.rerank_method} method...")
+                    for i,result in enumerate(rrf_results):
+                        print(f"Re-ranking {i}/{len(rrf_results)}...")
+
+                        score = rerank_results(query, result, method="individual")
+                        result["rerank_score"] = float(score)
+                        time.sleep(3)
+                    rrf_results.sort(key=lambda x: x["rerank_score"], reverse=True)
+
+                rrf_results = rrf_results[:limit]
+
+                print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):\n")
+                for i, result in enumerate(rrf_results, start=1):
                     print(f"{i}. {result['title']}")
-                    print(f"RRF Score: {result['rrf_score']:.3f}")
-                    print(f"BM25: {result['bm25_rank']}, Semantic: {result['semantic_rank']}")
-                    print(result['description'])
+                    if args.rerank_method == "individual":
+                        print(f"   Re-rank Score: {result['rerank_score']:.3f}/10")
+                    print(f"   RRF Score: {result['rrf_score']:.3f}")
+                    print(f"   BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}")
+                    print(f"   {result['description']}")
         case _:
             parser.print_help()
 

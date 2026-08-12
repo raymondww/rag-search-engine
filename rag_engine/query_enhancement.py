@@ -118,6 +118,5 @@ def rerank_results(query,doc, method="individual"):
                 }
             ]
         )
-
     rerank = (response.choices[0].message.content or "").strip().strip('"')
     return rerank if rerank else 0
