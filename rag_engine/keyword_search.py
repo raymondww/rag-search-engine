@@ -145,18 +145,16 @@ class InvertedIndex:
                 self.doc_lengths = pickle.load(f)
     
     def get_tf(self, doc_id: int, term: str) -> int:
-        term = tokenize_single_term(term)
+        # term is expected to already be a normalized token
         return self.term_freq[doc_id][term]
-    
-    def get_bm25_idf(self, term:str) -> float:
-        # IDF = log((N - df + 0.5) / (df + 0.5) + 1)
-        term = tokenize_single_term(term)
+
+    def get_bm25_idf(self, term: str) -> float:
+        # term is expected to already be a normalized token
         term_match_doc_count = len(self.index.get(term, set()))
         total_doc_count = len(self.docmap)
         return math.log((total_doc_count - term_match_doc_count + 0.5) / (term_match_doc_count + 0.5) + 1)
-    
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B ) -> float:
-        # Length normalization factor
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B) -> float:
         doc_length = self.doc_lengths.get(doc_id, 0)
         avg_doc_length = self.__get_avg_doc_length()
         length_norm = 1 - b + b * (doc_length / avg_doc_length)
@@ -354,15 +352,21 @@ def build_index_command() -> None:
     # docs=invertedindex.get_documents("merida")
     # print(f"First document for token 'merida' = {docs[0]}")
 
-def bm25_idf_command(term:str) -> float:
+def bm25_idf_command(term: str) -> float:
     invertedindex = InvertedIndex()
     invertedindex.load()
-    return invertedindex.get_bm25_idf(term)
+    tokens = normalize_tokens(term, stopwords=stopwords_list, stem=True)
+    if not tokens:
+        raise ValueError(f"Term '{term}' normalized to nothing (likely a stopword).")
+    return invertedindex.get_bm25_idf(tokens[0])
 
-def bm25_tf_command(doc_id:int, term:str) -> float:
+def bm25_tf_command(doc_id: int, term: str) -> float:
     invertedindex = InvertedIndex()
     invertedindex.load()
-    return invertedindex.get_bm25_tf(doc_id, term)
+    tokens = normalize_tokens(term, stopwords=stopwords_list, stem=True)
+    if not tokens:
+        raise ValueError(f"Term '{term}' normalized to nothing (likely a stopword).")
+    return invertedindex.get_bm25_tf(doc_id, tokens[0])
 
 def bm25_search_command(query:str, limit=5) -> list:
     invertedindex = InvertedIndex()
