@@ -28,10 +28,12 @@ def main() -> None:
         relevant_retrieved = len([doc for doc in rrf_result if doc["title"] in expected_result])
         precision = relevant_retrieved / len(rrf_result) if rrf_result else 0
         recall = relevant_retrieved / len(expected_result) if expected_result else 0
+        f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
         
         print(f"- Query: {test_case['query']}")
         print(f"  - Precision@{limit}: {precision:.4f}")
         print(f"  - Recall@{limit}: {recall:.4f}")
+        print(f"  - F1 Score: {f1_score:.4f}")
         print(f"  - Retrieved: {', '.join(doc['title'] for doc in rrf_result)}")
         print(f"  - Relevant: {', '.join(expected_result)}\n")
         
