@@ -141,3 +141,150 @@ def rerank_results(query,doc, method="individual"):
     if not rerank:
         return "0" if method == "individual" else "[]"
     return rerank
+
+def evaluate_results(query, results):
+    formatted_results = [
+    f"{i}. {r['title']} - {r['document'][:200]}"
+    for i, r in enumerate(results, start=1)
+    ]
+    prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+                Query: "{query}"
+
+                Results:
+                {chr(10).join(formatted_results)}
+
+                Scale:
+                - 3: Highly relevant
+                - 2: Relevant
+                - 1: Marginally relevant
+                - 0: Not relevant
+
+                Do NOT give any numbers other than 0, 1, 2, or 3.
+
+                Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
+
+                [2, 0, 3, 2, 0, 1]"""
+                
+    response = client.chat.completions.create(
+    model = model,
+    messages = [
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+)
+    evaluation = (response.choices[0].message.content or "").strip().strip('"')
+    return evaluation if evaluation else "[]"
+
+def call_rag_agent(query:str, docs:str) -> str:
+    prompt = f"""You are a RAG agent for Webflyx, a movie streaming service.
+            Your task is to provide a natural-language answer to the user's query based on documents retrieved during search.
+            Provide a comprehensive answer that addresses the user's query.
+
+            Query: {query}
+
+            Documents:
+            {docs}
+
+            Answer:"""
+            
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+    answer = (response.choices[0].message.content or "").strip()
+    return answer if answer else "I don't know."
+
+def summarize_text(query:str,results) -> str:
+    prompt = f"""Provide information useful to the query below by synthesizing data from multiple search results in detail.
+
+            The goal is to provide comprehensive information so that users know what their options are.
+            Your response should be information-dense and concise, with several key pieces of information about the genre, plot, etc. of each movie.
+
+            This should be tailored to Webflyx users. Webflyx is a movie streaming service.
+
+            Query: {query}
+
+            Search results:
+            {results}
+
+            Provide a comprehensive 3–4 sentence answer that combines information from multiple sources:"""
+                        
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+    summary = (response.choices[0].message.content or "").strip()
+    return summary if summary else "No summary available."
+
+def generate_citations(query:str,documents) -> str:
+    prompt = f"""Answer the query below and give information based on the provided documents.
+
+            The answer should be tailored to users of Webflyx, a movie streaming service.
+            If not enough information is available to provide a good answer, say so, but give the best answer possible while citing the sources available.
+
+            Query: {query}
+
+            Documents:
+            {documents}
+
+            Instructions:
+            - Provide a comprehensive answer that addresses the query
+            - Cite sources in the format [1], [2], etc. when referencing information
+            - If sources disagree, mention the different viewpoints
+            - If the answer isn't in the provided documents, say "I don't have enough information"
+            - Be direct and informative
+
+            Answer:"""
+                                    
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+    citations = (response.choices[0].message.content or "").strip()
+    return citations if citations else "No citations available."
+
+def generate_answer(query:str,question,context) -> str:
+    prompt = f"""Answer the user's question based on the provided movies that are available on Webflyx, a streaming service.
+
+    Question: {question}
+
+    Documents:
+    {context}
+
+    Instructions:
+    - Answer questions directly and concisely
+    - Be casual and conversational
+    - Don't be cringe or hype-y
+    - Talk like a normal person would in a chat conversation
+
+    Answer:"""
+                                    
+    response = client.chat.completions.create(
+        model = model,
+        messages = [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+    answer = (response.choices[0].message.content or "").strip()
+    return answer if answer else "No answer available."

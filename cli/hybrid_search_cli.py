@@ -1,8 +1,16 @@
 import argparse
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging for the search pipeline",
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     normalize_parser = subparsers.add_parser("normalize", help="Normalize documents")
@@ -29,9 +37,23 @@ def main() -> None:
         choices=["individual","batch","cross_encoder"], 
         help="Reranking method for RRF search"
         )
-    
-    args = parser.parse_args()
+    rrf_search_parser.add_argument(
+        "--evaluate", 
+        action="store_true",
+        help="Evaluate the search results using LLM"
+        )
 
+    args = parser.parse_args()
+    
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+    
+    if args.debug:
+        logging.getLogger("rag_engine").setLevel(logging.DEBUG)
+        logging.getLogger("__main__").setLevel(logging.DEBUG)
+    
     match args.command:
         case "normalize":
             if args.scores:
@@ -66,7 +88,9 @@ def main() -> None:
                 limit = args.limit
                 documents = get_movies()
                 rrf_searches = HybridSearch(documents)
-
+                
+                logger.debug("Original query: %r", query)
+                
                 if args.enhance == "spell":
                     from rag_engine.query_enhancement import spell_check_query
                     query = spell_check_query(query)
@@ -80,8 +104,17 @@ def main() -> None:
                     query = expand_query(query)
                     print(f"Enhanced query (expand): '{args.query}' -> '{query}'\n")
 
+                if args.enhance:
+                    logger.debug("Query after '%s' enhancement: %r", args.enhance, query)
+                    print(f"Enhanced query ({args.enhance}): '{args.query}' -> '{query}'\n")
+
                 search_limit = limit * 5 if args.rerank_method in ("individual", "batch", "cross_encoder") else limit
                 rrf_results = rrf_searches.rrf_search(query, k, search_limit)
+                
+                logger.debug(
+                    "RRF results before re-ranking: %s",
+                    [r["title"] for r in rrf_results],
+                )
 
                 if args.rerank_method == "individual":
                     from rag_engine.query_enhancement import rerank_results
@@ -135,6 +168,20 @@ def main() -> None:
                     print(f"   RRF Score: {result['rrf_score']:.3f}")
                     print(f"   BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['semantic_rank']}")
                     print(f"   {result['document']}")
+                    
+                if args.evaluate:
+                    import json
+                    from rag_engine.query_enhancement import evaluate_results
+                    evaluation = evaluate_results(query, rrf_results)
+                    try:
+                        evaluation_json = json.loads(evaluation)
+                    except json.JSONDecodeError:
+                        print("Error: Failed to parse evaluation JSON. Please check the response format.")
+                        return
+                    for i, (result, score) in enumerate(zip(rrf_results, evaluation_json), start=1):
+                        print(f"{i}. {result['title']}: {score}/3")
+
+
         case _:
             parser.print_help()
 

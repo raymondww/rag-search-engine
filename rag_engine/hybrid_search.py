@@ -1,7 +1,11 @@
 import os
+import logging
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
+
+
+logger = logging.getLogger(__name__)
 
 class HybridSearch:
     def __init__(self, documents: list[dict]) -> None:
@@ -58,8 +62,14 @@ class HybridSearch:
     def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
         bm25_results = self._bm25_search(query, 500 * limit)
         semantic_results = self.semantic_search.search_chunks(query, 500 * limit)
-            
-        return combine_rrf_results(bm25_results, semantic_results, k, limit)
+        results = combine_rrf_results(bm25_results, semantic_results, k, limit)
+
+        logger.debug(
+            "RRF results for query=%r (k=%d, limit=%d): %s",
+            query, k, limit,
+            [r["title"] for r in results],
+        )
+        return results
 
 def combine_rrf_results(bm25_results: list[dict], semantic_results: list[dict], k: int, limit: int) -> list[dict]:
     combined = {}
